@@ -31,6 +31,7 @@ import { CompanyProfile } from '../types';
 import { INDUSTRY_SECTORS } from '../constants';
 import { motion } from 'motion/react';
 import { useTranslation } from '../i18n';
+import { toast } from 'sonner';
 
 interface ProfileEditorProps {
   profile: CompanyProfile;
@@ -94,16 +95,21 @@ export default function ProfileEditor({ profile, onSave }: ProfileEditorProps) {
     }));
   };
 
+  const onProfileSave = () => {
+    onSave(editedProfile);
+    toast.success('Organization parameters synchronized with global nodes');
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-10 pb-20">
+    <div className="max-w-4xl mx-auto space-y-10 pb-20 p-4 md:p-0">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-100 pb-6">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight text-slate-950">{t('organizationalIdentity')}</h1>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-950">{t('organizationalIdentity')}</h1>
           <p className="text-slate-500 text-sm mt-1 uppercase tracking-widest font-medium">{t('configureGlobalNodeParameters')}</p>
         </div>
         <Button 
-          onClick={() => onSave(editedProfile)}
-          className="bg-slate-900 text-white rounded-lg h-10 px-8 font-bold text-[10px] uppercase tracking-widest hover:bg-slate-800"
+          onClick={onProfileSave}
+          className="bg-slate-900 text-white rounded-lg h-10 px-8 font-bold text-[10px] uppercase tracking-widest hover:bg-slate-800 w-full md:w-auto"
         >
           <Save className="w-3.5 h-3.5 mr-2" />
           {t('saveProfile')}
@@ -121,7 +127,7 @@ export default function ProfileEditor({ profile, onSave }: ProfileEditorProps) {
                 onClick={() => fileInputRef.current?.click()}
               >
                 {editedProfile.logo ? (
-                  <img src={editedProfile.logo} alt="Logo" className="w-full h-full object-contain p-8" referrerPolicy="no-referrer" />
+                  <img src={editedProfile.logo || undefined} alt="Logo" className="w-full h-full object-contain p-8" referrerPolicy="no-referrer" />
                 ) : (
                   <>
                     <Camera className="w-10 h-10 text-slate-300 mb-3" />

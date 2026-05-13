@@ -19,6 +19,7 @@ import {
 import { geminiService } from '../services/geminiService';
 import Markdown from 'react-markdown';
 import { useTranslation, getLanguageName } from '../i18n';
+import { toast } from 'sonner';
 
 export default function ExpansionTool() {
   const { t, language } = useTranslation();
@@ -28,13 +29,19 @@ export default function ExpansionTool() {
   const [analysis, setAnalysis] = useState<string | null>(null);
 
   const handleAnalyze = async () => {
-    if (!product || !country) return;
+    if (!product || !country) {
+      toast.error('Parameters incomplete');
+      return;
+    }
     setLoading(true);
+    toast.loading('Initializing market intelligence probe...', { id: 'market-analysis' });
     try {
       const result = await geminiService.analyzeMarket(product, country, getLanguageName(language));
       setAnalysis(result);
+      toast.success('Market analysis synthesized', { id: 'market-analysis' });
     } catch (error) {
       console.error(error);
+      toast.error('Strategy extraction failed', { id: 'market-analysis' });
     } finally {
       setLoading(false);
     }
@@ -113,7 +120,12 @@ export default function ExpansionTool() {
                     <Sparkles className="w-4 h-4 text-blue-400" />
                     <span className="text-white text-[10px] font-bold tracking-[0.2em] uppercase">{t('intelligenceNodeReport')} :: {product}</span>
                   </div>
-                  <Button variant="outline" size="sm" className="text-white border-white/20 hover:bg-white/10 h-8 text-[9px] font-bold uppercase tracking-widest">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-white border-white/20 hover:bg-white/10 h-8 text-[9px] font-bold uppercase tracking-widest"
+                    onClick={() => toast.success('Strategy core exported')}
+                  >
                     {t('exportCore')}
                   </Button>
                 </div>

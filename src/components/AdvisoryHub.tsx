@@ -26,6 +26,7 @@ import { geminiService } from '../services/geminiService';
 import { AdvisoryTicket } from '../types';
 import { Separator } from '@/components/ui/separator';
 import { useTranslation, getLanguageName } from '../i18n';
+import { toast } from 'sonner';
 
 export default function AdvisoryHub() {
   const { t, language } = useTranslation();
@@ -79,17 +80,17 @@ export default function AdvisoryHub() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full max-h-[85vh]">
       <div className="lg:col-span-8 flex flex-col gap-8">
-        <div className="flex items-end justify-between border-b border-slate-100 pb-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between border-b border-slate-100 pb-4 gap-4">
           <div>
             <h1 className="text-4xl font-bold tracking-tight text-slate-950">{t('advisory')}</h1>
             <p className="text-slate-500 text-sm mt-1 uppercase tracking-widest font-medium">{t('advisoryDesc')}</p>
           </div>
-          <Badge className="bg-slate-900 text-white gap-1.5 py-1 px-4 rounded-full text-[10px] font-bold tracking-widest uppercase">
+          <Badge className="bg-slate-900 text-white gap-1.5 py-1 px-4 rounded-full text-[10px] font-bold tracking-widest uppercase w-fit">
             {t('unrestrictedAccess')}
           </Badge>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
           {categories.map((cat) => (
             <button
               key={cat.id}
@@ -108,7 +109,7 @@ export default function AdvisoryHub() {
           ))}
         </div>
 
-        <Card className="flex-1 flex flex-col border-slate-200 shadow-none overflow-hidden rounded-2xl">
+        <Card className="flex-1 flex flex-col border-slate-200 shadow-none overflow-hidden rounded-2xl min-h-[400px]">
           <CardContent className="flex-1 p-0 flex flex-col bg-white">
             <ScrollArea className="flex-1 p-8">
               {history.length === 0 ? (
@@ -216,7 +217,10 @@ export default function AdvisoryHub() {
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700" />
           <p className="text-[10px] uppercase tracking-widest font-bold opacity-60 mb-2">Vandoris Guard</p>
           <p className="text-sm leading-relaxed font-light italic mb-6">{t('activeShieldVerified')}</p>
-          <button className="w-full py-3 bg-white text-slate-950 text-[10px] font-bold rounded-lg uppercase tracking-wider hover:bg-slate-100 transition-colors">
+          <button 
+            className="w-full py-3 bg-white text-slate-950 text-[10px] font-bold rounded-lg uppercase tracking-wider hover:bg-slate-100 transition-colors"
+            onClick={() => toast.success('Vandoris Protocol Status: Nominal')}
+          >
             {t('protocolOverview')}
           </button>
         </Card>

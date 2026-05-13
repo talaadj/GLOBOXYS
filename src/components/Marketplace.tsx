@@ -21,41 +21,10 @@ import {
 } from 'lucide-react';
 import { Company } from '../types';
 import { geminiService } from '../services/geminiService';
-
-const MOCK_COMPANIES: Company[] = [
-  {
-    id: 'c1',
-    name: 'Atlas Manufacturing',
-    sector: 'Industrial Electronics',
-    country: 'Germany',
-    description: 'Hochpräzise Leiterplattenbestückung und industrielle Robotikkomponenten. Zertifiziert für Luft- und Raumfahrt sowie Verteidigung.',
-    logo: '',
-    type: 'Supplier',
-    isVerified: true
-  },
-  {
-    id: 'c2',
-    name: 'Swift-Logix Solutions',
-    sector: 'Supply Chain',
-    country: 'Singapore',
-    description: 'Specialized in cold-chain logistics and real-time inventory tracking for pharmaceutical industries.',
-    logo: '',
-    type: 'Contractor',
-    isVerified: true
-  },
-  {
-    id: 'c3',
-    name: 'BlueWave Energy',
-    sector: 'Renewables',
-    country: 'Norway',
-    description: 'Offshore wind farm developer looking for transmission cable partners and local maintenance contractors.',
-    logo: '',
-    type: 'Partner',
-    isVerified: false
-  }
-];
+import { MOCK_COMPANIES } from '../data';
 
 import { useTranslation, getLanguageName } from '../i18n';
+import { toast } from 'sonner';
 
 interface MarketplaceProps {
   onConnect?: (id: string) => void;
@@ -102,12 +71,12 @@ export default function Marketplace({ onConnect }: MarketplaceProps) {
           <h1 className="text-4xl font-bold tracking-tight text-slate-950">{t('strategicHorizon')}</h1>
           <p className="text-slate-500 text-sm mt-1 uppercase tracking-widest font-medium">{t('globalOpportunities')}</p>
         </div>
-        <div className="flex gap-3">
-          <div className="relative">
+        <div className="flex flex-wrap gap-3 w-full md:w-auto">
+          <div className="relative flex-1 md:w-[280px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <Input 
               placeholder={t('searchNodesPlaceholder')} 
-              className="pl-9 w-[280px] theme-input uppercase font-bold tracking-widest text-[10px]"
+              className="pl-9 w-full theme-input uppercase font-bold tracking-widest text-[10px]"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -169,17 +138,28 @@ export default function Marketplace({ onConnect }: MarketplaceProps) {
                 "{translations[company.id] || company.description}"
               </p>
 
-              <div className="flex gap-3">
-                <Button className="flex-1 bg-slate-900 text-white text-[10px] font-bold h-10 rounded-lg uppercase tracking-widest hover:bg-slate-800">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button 
+                  className="flex-1 bg-slate-900 text-white text-[10px] font-bold h-10 rounded-lg uppercase tracking-widest hover:bg-slate-800"
+                  onClick={() => toast.success(`RFP Request queued for ${company.name}`)}
+                >
                   {t('requestRfp')}
                 </Button>
                 <Button 
                   variant="outline" 
                   size="icon" 
-                  className="rounded-lg h-10 w-10 border-slate-200 hover:border-slate-400"
+                  className="rounded-lg h-10 w-10 border-slate-200 hover:border-slate-400 hidden sm:flex"
                   onClick={() => onConnect?.(company.id)}
                 >
                   <MessageSquare className="w-4 h-4" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                   className="rounded-lg h-10 border-slate-200 hover:border-slate-400 sm:hidden text-[10px] uppercase font-bold tracking-widest"
+                  onClick={() => onConnect?.(company.id)}
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  {t('connect')}
                 </Button>
               </div>
             </div>
@@ -196,7 +176,7 @@ export default function Marketplace({ onConnect }: MarketplaceProps) {
       )}
 
 
-      <div className="bg-slate-900 rounded-3xl p-16 text-center relative overflow-hidden">
+      <div className="bg-slate-900 rounded-3xl p-8 md:p-16 text-center relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
            <MapIcon className="w-full h-full scale-150" />
         </div>
@@ -204,10 +184,13 @@ export default function Marketplace({ onConnect }: MarketplaceProps) {
           <div className="w-20 h-20 rounded-full bg-white/10 mx-auto flex items-center justify-center backdrop-blur-md border border-white/20">
             <Trophy className="w-10 h-10 text-white" />
           </div>
-          <h3 className="text-3xl font-bold tracking-tighter text-white">{t('scaleOperationalCore')}</h3>
+          <h3 className="text-2xl md:text-3xl font-bold tracking-tighter text-white">{t('scaleOperationalCore')}</h3>
           <p className="text-slate-400 text-sm font-light leading-relaxed">{t('joinNetworkDesc')}</p>
           <div className="pt-4">
-            <Button className="rounded-full bg-white text-slate-950 px-12 h-12 font-bold uppercase tracking-widest hover:bg-slate-100">
+            <Button 
+              className="rounded-full bg-white text-slate-950 px-8 md:px-12 h-12 font-bold uppercase tracking-widest hover:bg-slate-100 w-full sm:w-auto"
+              onClick={() => toast.info(t('systemInputRequired'))}
+            >
               {t('applyVerification')}
             </Button>
           </div>

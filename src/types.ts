@@ -33,6 +33,12 @@ export interface Post {
   likes: number;
   comments: number;
   tags: string[];
+  media?: {
+    type: 'image' | 'video';
+    url: string;
+  };
+  rating?: number;
+  reactions?: Record<string, number>;
 }
 
 export interface Job {

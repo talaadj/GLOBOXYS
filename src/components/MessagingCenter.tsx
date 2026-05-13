@@ -9,6 +9,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Conversation, Message } from '../types';
 import { useTranslation } from '../i18n';
 
+import { toast } from 'sonner';
+
 const MOCK_CONVERSATIONS: Conversation[] = [
   { id: '1', participantId: 'c1', participantName: 'Atlas Manufacturing', lastMessage: 'The shipment is on its way to the Hamburg node.', timestamp: '10:45 AM', unreadCount: 2 },
   { id: '2', participantId: 'c2', participantName: 'Lumina Legal', lastMessage: 'Contract review complete. Awaiting signature.', timestamp: 'Yesterday', unreadCount: 0 },
@@ -40,6 +42,13 @@ export default function MessagingCenter({ initialSelectedId, onSelectConversatio
 
   const selectedConversation = MOCK_CONVERSATIONS.find(c => c.id === selectedId);
   const messages = selectedId ? MOCK_MESSAGES[selectedId] || [] : [];
+
+  const onSendMessage = () => {
+    if (newMessage.trim()) {
+      setNewMessage('');
+      toast.success('Sequence transmitted to partner node');
+    }
+  };
 
   return (
     <div className="h-[calc(100vh-12rem)] flex gap-6">
@@ -136,9 +145,9 @@ export default function MessagingCenter({ initialSelectedId, onSelectConversatio
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder={t('handshakeInitiate')} 
                     className="h-12 bg-slate-50 border-none px-6 text-xs font-bold uppercase tracking-widest focus-visible:ring-slate-900"
-                    onKeyDown={(e) => e.key === 'Enter' && setNewMessage('')}
+                    onKeyDown={(e) => e.key === 'Enter' && onSendMessage()}
                   />
-                  <Button className="h-12 w-12 bg-slate-900 hover:bg-slate-800 shrink-0" onClick={() => setNewMessage('')}>
+                  <Button className="h-12 w-12 bg-slate-900 hover:bg-slate-800 shrink-0" onClick={onSendMessage}>
                     <Send className="w-4 h-4" />
                   </Button>
                 </div>

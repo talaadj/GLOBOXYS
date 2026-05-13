@@ -58,6 +58,61 @@ export const geminiService = {
       "${text}"`,
     });
     return response.text;
+  },
+
+  async generateStrategicPosts(count: number = 3, language: string = 'English') {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Generate ${count} strategic business updates in ${language} for a global business hub called GLOBAXYS. These updates are from high-level companies (nodes) in the network.
+      
+      Return the response as a JSON array of objects with the following schema:
+      {
+        "companyName": string,
+        "content": string,
+        "tags": string[],
+        "mediaType": "image" | "video" | "none"
+      }
+      
+      The content should be professional, data-driven, and involve topics like trade routes, logistics, AI scaling, or regulatory breakthroughs.
+      Example company names: "Aether Dynamics", "Ironstone Ventures", "NexaFlow Systems".
+      Make the tags relevant like #LOGISTICS, #AIR_CARGO, #AI_CORE.
+      Media type can be "image", "video" or "none".
+      
+      IMPORTANT: The content must be in ${language}.`,
+      config: {
+        responseMimeType: "application/json",
+      }
+    });
+    
+    try {
+      return JSON.parse(response.text);
+    } catch (e) {
+      console.error("Failed to parse AI generated posts", e);
+      return [];
+    }
+  },
+
+  async analyzeFeedForConnections(posts: any[], language: string = 'English') {
+    const postsData = posts.map(p => ({
+      company: p.companyName,
+      content: p.content,
+      tags: p.tags
+    }));
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `You are the GLOBAXYS AI Co-pilot. Analyze the following feed of strategic business updates and identify the 3 most critical "Synergy Connections" for optimal growth and operational efficiency.
+      
+      Feed Data: ${JSON.stringify(postsData)}
+      
+      For each suggestion:
+      1. Identify the Target Company/Node.
+      2. Explain the STRATEGIC WHY (Why connect now?).
+      3. Suggest a concrete Action (e.g., "Request Logistics API sync").
+      
+      Format the response as a structured markdown with icons in ${language}. Keep it concise, high-impact, and futuristic.`,
+    });
+    return response.text;
   }
 };
 
