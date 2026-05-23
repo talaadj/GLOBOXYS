@@ -12,26 +12,106 @@ import {
   Zap,
   BarChart3,
   QrCode,
-  Download
+  Download,
+  FileText,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useTranslation } from '../i18n';
+import { useTranslation, getLanguageName } from '../i18n';
 import { Progress } from "@/components/ui/progress";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import { toast } from "sonner";
 
 export default function GrowthHub() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const [isGenerating, setIsGenerating] = React.useState(false);
 
   const growthSteps = [
-    { title: 'Global Presence', value: '42%', icon: Globe, color: 'text-blue-600' },
-    { title: 'Partner Network', value: '850+', icon: Users, color: 'text-indigo-600' },
-    { title: 'ROI Efficiency', value: '+18.4%', icon: TrendingUp, color: 'text-emerald-600' },
+    { title: t('Global Presence' as any) || 'Global Presence', value: '42%', icon: Globe, color: 'text-blue-600' },
+    { title: t('Partner Network' as any) || 'Partner Network', value: '850+', icon: Users, color: 'text-indigo-600' },
+    { title: t('ROI Efficiency' as any) || 'ROI Efficiency', value: '+18.4%', icon: TrendingUp, color: 'text-emerald-600' },
   ];
+
+  const generateReport = async () => {
+    setIsGenerating(true);
+    try {
+      const doc = new jsPDF();
+      const timestamp = new Date().toLocaleString();
+      
+      // Header
+      doc.setFontSize(22);
+      doc.setTextColor(15, 23, 42); // slate-900
+      doc.text("GLOBAXYS", 14, 20);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139); // slate-500
+      doc.text(t('reportGeneratedBy'), 14, 26);
+      doc.text(timestamp, 150, 26);
+
+      // Title
+      doc.setFontSize(18);
+      doc.setTextColor(30, 64, 175); // blue-800
+      doc.text(t('monthlyReportTitle'), 14, 40);
+
+      // Summary text
+      doc.setFontSize(11);
+      doc.setTextColor(51, 65, 85); // slate-700
+      const summaryLines = doc.splitTextToSize(t('reportStrategicSummary'), 180);
+      doc.text(summaryLines, 14, 50);
+
+      // Core Metrics Table
+      autoTable(doc, {
+        startY: 65,
+        head: [[t('Metric'), t('Value'), t('Status')]],
+        body: [
+          [t('impactScore'), "8,420 SYNERGY PTS", "Level 84"],
+          [t('partnerGrowth'), "850+", "+12.5% MoM"],
+          [t('efficiencyGains'), "+18.4%", "Optimized"],
+          ["Global Reach", "42%", "Expansion Active"],
+          ["Growth Phase", "Phase 4", "Stable"],
+        ],
+        theme: 'striped',
+        headStyles: { fillColor: [30, 64, 175] },
+        styles: { fontSize: 10, cellPadding: 5 }
+      });
+
+      // Operational Details
+      const finalY = (doc as any).lastAutoTable.finalY + 15;
+      doc.setFontSize(14);
+      doc.text("Operational Parameters", 14, finalY);
+
+      autoTable(doc, {
+        startY: finalY + 5,
+        body: [
+          [t('latencyNodeOpt'), "99.8%"],
+          [t('jurisdictionalSpeed'), "4s"],
+          [t('talentSaturation'), "92%"],
+          [t('creditsGenerated'), "$12,500"],
+        ],
+        styles: { fontSize: 9 }
+      });
+
+      // Footer
+      doc.setFontSize(8);
+      doc.setTextColor(156, 163, 175);
+      doc.text("© 2026 GLOBAXYS ECOSYSTEM - ENCRYPTED STRATEGIC EXPORT", 14, doc.internal.pageSize.height - 10);
+
+      doc.save(`GLOBAXYS_Growth_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+      toast.success("Report generated and downloaded successfully.");
+    } catch (error) {
+      console.error("PDF Generation Error:", error);
+      toast.error("Failed to generate PDF report.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-12">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-md pt-8 pb-4 -mt-8 mb-4 border-b border-slate-100 flex flex-col md:flex-row md:items-end justify-between gap-6 px-1">
         <div>
           <div className="flex items-center gap-3 mb-2">
             <div className="w-2 h-8 bg-slate-900 rounded-full animate-pulse" />
@@ -40,7 +120,20 @@ export default function GrowthHub() {
           <p className="text-slate-500 text-sm uppercase tracking-widest font-medium">Strategic Expansion & Ecosystem Multiplication Protocol</p>
         </div>
         <div className="flex items-center gap-3">
-          <Badge variant="outline" className="h-7 px-3 border-emerald-500 text-emerald-600 bg-emerald-50 flex items-center gap-2">
+          <Button 
+            onClick={generateReport} 
+            disabled={isGenerating}
+            variant="outline" 
+            className="h-10 px-6 border-slate-200 text-slate-700 bg-white shadow-sm hover:bg-slate-50 flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest transition-all"
+          >
+            {isGenerating ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <FileText className="w-4 h-4 text-blue-600" />
+            )}
+            {t('downloadMonthlyReport')}
+          </Button>
+          <Badge variant="outline" className="h-10 px-4 border-emerald-500 text-emerald-600 bg-emerald-50 flex items-center gap-2">
             <ShieldCheck className="w-3 h-3" />
             <span className="text-[10px] font-bold uppercase tracking-widest">Growth Phase 4 Active</span>
           </Badge>

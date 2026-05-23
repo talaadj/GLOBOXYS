@@ -671,43 +671,48 @@ export default function SynergyFeed({ onConnect, posts: externalPosts, setPosts:
   const handleTranslateAll = async () => {
     setTranslatingAll(true);
     try {
-      const translationPromises = posts.map(async (post) => {
-        // Only translate if not already translated
-        if (!translations[post.id]) {
-          const translated = await geminiService.translateText(post.content, getLanguageName(language));
-          return { id: post.id, text: translated };
-        }
-        return null;
-      });
+      const postsToTranslate = posts
+        .filter(post => !translations[post.id])
+        .map(post => ({ id: post.id, text: post.content }));
 
-      const results = await Promise.all(translationPromises);
+      if (postsToTranslate.length === 0) return;
+
+      // Group into small batches of 5 to be safe with token limits and context, 
+      // though 1 batch of all might work too.
+      const batchSize = 10;
+      const results: {id: string, translatedText: string}[] = [];
+      
+      for (let i = 0; i < postsToTranslate.length; i += batchSize) {
+        const batch = postsToTranslate.slice(i, i + batchSize);
+        const batchResults = await geminiService.translateBatch(batch, getLanguageName(language));
+        results.push(...batchResults);
+        
+        // If we have more batches, wait a bit to respect the 5 RPM limit
+        if (i + batchSize < postsToTranslate.length) {
+          await new Promise(resolve => setTimeout(resolve, 15000)); // Every 15s = 4 RPM max
+        }
+      }
+
       const newTranslations = { ...translations };
       results.forEach(res => {
-        if (res) {
-          newTranslations[res.id] = res.text;
-        }
+        newTranslations[res.id] = res.translatedText;
       });
       setTranslations(newTranslations);
+      toast.success(t('translateAll') + ' ' + t('complete' as any) || 'Complete');
     } catch (error) {
       console.error('Bulk translation failed:', error);
+      toast.error(t('analysisFailed'));
     } finally {
       setTranslatingAll(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div className="flex flex-col md:flex-row md:items-end justify-between border-b border-slate-100 pb-4 gap-4">
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="border-b border-slate-100 flex flex-col md:flex-row md:items-end justify-between gap-4 px-1 pb-4 mb-2">
         <div className="relative">
-          <h1 className="text-4xl font-bold tracking-tight text-slate-950">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-950">
             {t('operationalPulse')}
-            {pendingPosts.length > 0 && (
-              <motion.span 
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="absolute -top-1 -right-4 w-3 h-3 bg-red-500 rounded-full border-2 border-white shadow-sm ring-4 ring-red-500/10"
-              />
-            )}
           </h1>
           <p className="text-slate-500 text-sm mt-1 uppercase tracking-widest font-medium">
             {t('synergyDesc')}
@@ -719,14 +724,6 @@ export default function SynergyFeed({ onConnect, posts: externalPosts, setPosts:
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Button 
-            className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black uppercase tracking-[0.2em] h-9 px-6 rounded-lg shadow-lg shadow-blue-100 transition-all flex items-center gap-2"
-            onClick={() => setIsPosting(!isPosting)}
-          >
-            {isPosting ? <Settings className="w-3.5 h-3.5 rotate-45" /> : <Plus className="w-3.5 h-3.5" />}
-            {isPosting ? t('cancel') : t('newBroadcast')}
-          </Button>
-
           <DropdownMenu>
             <DropdownMenuTrigger nativeButton={true} render={(props) => (
               <button 
@@ -753,43 +750,63 @@ export default function SynergyFeed({ onConnect, posts: externalPosts, setPosts:
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="rounded-full border-slate-200 text-slate-600 hover:text-slate-950 hover:border-slate-400 h-9 px-4 text-[10px] font-bold uppercase tracking-widest gap-2 flex-1 sm:flex-none"
-            onClick={handleTranslateAll}
-            disabled={translatingAll}
-          >
-            {translatingAll ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
-            ) : (
-              <Languages className="w-3.5 h-3.5" />
-            )}
-            {t('translateAll')}
-          </Button>
-
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="rounded-full border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 h-9 px-4 text-[10px] font-bold uppercase tracking-widest gap-2 flex-1 sm:flex-none border transition-all"
-            onClick={handleAIAnalysis}
-            disabled={isAnalyzing}
-          >
-            {isAnalyzing ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
-            ) : (
-              <Bot className="w-3.5 h-3.5" />
-            )}
-            {t('aiCopilot')}
-          </Button>
-
           <div className="hidden sm:flex gap-2">
-            {['TECH', 'ENERGY', 'LATAM'].map(tag => (
+            {(['tech', 'energy', 'latam'] as const).map(tag => (
               <span key={tag} className="px-3 py-1 bg-slate-100 text-[10px] font-bold rounded-full border border-slate-200 uppercase tracking-tighter">
-                {tag}
+                {t(tag)}
               </span>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Unified Strategy Interface (Adaptive Command Bar) */}
+      <div className="fixed bottom-0 sm:bottom-6 left-0 sm:left-1/2 sm:-translate-x-1/2 z-50 w-full sm:w-auto pointer-events-none">
+        <div className="pointer-events-auto flex items-center justify-around sm:justify-center bg-slate-950/95 backdrop-blur-2xl border-t sm:border border-white/10 shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.5)] sm:shadow-2xl sm:rounded-full w-full sm:w-max mx-auto gap-0 sm:gap-4 px-2 sm:px-1 pt-1 pb-4 sm:pb-1 ring-1 ring-white/5">
+          
+          {/* Action Node: Translation */}
+          <button 
+            type="button"
+            onClick={handleTranslateAll}
+            disabled={translatingAll}
+            className="flex flex-col items-center justify-center p-1.5 text-slate-400 hover:text-white transition-all disabled:opacity-50 group flex-1 sm:flex-none outline-none focus-visible:ring-2 focus-visible:ring-white/20 rounded-full"
+          >
+            <div className="mb-0.5 p-1 rounded-full group-hover:bg-white/10 transition-colors">
+              {translatingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Languages className="w-4 h-4" />}
+            </div>
+            <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-widest opacity-60 group-hover:opacity-100">{t('translateAll')}</span>
+          </button>
+
+          {/* Primary Directive: New Broadcast (Elevated Node) */}
+          <button 
+            type="button"
+            onClick={() => {
+              setIsPosting(!isPosting);
+              if (!isPosting) window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="flex flex-col items-center justify-center -mt-6 sm:mt-0 px-2 group outline-none"
+          >
+            <div className="w-13 h-13 sm:w-10 sm:h-10 bg-blue-600 rounded-full flex items-center justify-center shadow-2xl shadow-blue-500/30 border-[4px] border-slate-950 sm:border-2 sm:border-white/20 transition-all active:scale-90 group-hover:scale-105 group-hover:bg-blue-500 group-focus-visible:ring-4 group-focus-visible:ring-blue-500/50">
+              {isPosting ? <X className="w-4.5 h-4.5 text-white" /> : <Plus className="w-6 h-6 text-white" />}
+            </div>
+            <span className="mt-1 text-[8px] font-black uppercase tracking-[0.12em] text-blue-400 sm:text-slate-400 group-hover:text-white drop-shadow-sm">
+               {isPosting ? t('cancel') : t('broadcast')}
+            </span>
+          </button>
+
+          {/* Intelligence Interface: AI Copilot */}
+          <button 
+            type="button"
+            onClick={handleAIAnalysis}
+            disabled={isAnalyzing}
+            className="flex flex-col items-center justify-center p-1.5 text-blue-400 hover:text-blue-300 transition-all disabled:opacity-50 group flex-1 sm:flex-none outline-none focus-visible:ring-2 focus-visible:ring-blue-500/20 rounded-full"
+          >
+            <div className="mb-0.5 p-1 rounded-full group-hover:bg-blue-500/10 transition-colors">
+              {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4" />}
+            </div>
+            <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-widest opacity-60 group-hover:opacity-100">{t('aiCopilot')}</span>
+          </button>
+
         </div>
       </div>
 
@@ -887,30 +904,33 @@ export default function SynergyFeed({ onConnect, posts: externalPosts, setPosts:
         <AnimatePresence mode="popLayout">
           {pendingPosts.length > 0 && (
             <motion.div
-              initial={{ opacity: 0, y: -20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="flex justify-center sticky top-24 z-40 pointer-events-none mb-6"
+              initial={{ opacity: 0, y: -40, scale: 0.95 }}
+              animate={{ opacity: 1, y: 12, scale: 1 }}
+              exit={{ opacity: 0, y: -40, scale: 0.95 }}
+              transition={{ type: "spring", damping: 25, stiffness: 350 }}
+              className="fixed top-0 left-0 right-0 z-[60] flex justify-center pointer-events-none"
             >
               <button
                 onClick={handleSyncPending}
-                className="pointer-events-auto bg-blue-600 text-white px-6 py-2.5 rounded-full shadow-2xl shadow-blue-400/40 flex items-center gap-3 hover:bg-blue-700 transition-all group scale-95 hover:scale-100"
+                className="pointer-events-auto bg-slate-950/80 backdrop-blur-lg text-white px-4 py-1.5 rounded-full shadow-2xl shadow-blue-500/20 flex items-center gap-2.5 hover:bg-slate-900 transition-all group border border-white/10 ring-1 ring-white/5"
               >
                 <div className="relative">
-                  <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full border-2 border-blue-600 animate-ping" />
+                  <RefreshCw className="w-3 h-3 text-blue-400 group-hover:rotate-180 transition-transform duration-500" />
+                  <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-blue-400 rounded-full animate-ping" />
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-                  {pendingPosts.length} NEW NODES DETECTED
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-200">
+                  {pendingPosts.length} {t('incomingStream')}
                 </span>
-                <span className="bg-white/20 px-2 py-0.5 rounded text-[9px] font-bold">
+                <span className="bg-blue-600/20 text-blue-400 px-1.5 py-0.5 rounded text-[7px] font-bold border border-blue-500/20">
                   {t('syncHub')}
                 </span>
               </button>
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
 
+      <div className="space-y-6">
         {sortedPosts.map((post) => (
           <motion.div 
             layout

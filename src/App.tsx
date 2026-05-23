@@ -194,7 +194,7 @@ export default function App() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col relative overflow-hidden bg-white">
         {/* Header */}
-        <header className="h-16 border-b border-slate-200 flex items-center justify-between px-4 md:px-8 bg-white">
+        <header className="h-16 border-b border-slate-200 flex items-center justify-between px-4 md:px-8 bg-white z-20">
           <div className="flex items-center gap-3">
             <Button 
               variant="ghost" 
@@ -283,7 +283,7 @@ export default function App() {
             </DropdownMenu>
 
             <Button 
-              className="bg-slate-950 text-white text-[10px] font-bold h-9 px-6 rounded-lg uppercase tracking-widest hover:bg-slate-800 transition-colors"
+              className="bg-slate-950 text-white text-[10px] font-bold h-9 px-6 rounded-lg uppercase tracking-widest hover:bg-slate-800 transition-colors hidden sm:flex"
               onClick={() => setInitiativeOpen(true)}
             >
               {t('newInitiative')}
@@ -291,8 +291,8 @@ export default function App() {
           </div>
         </header>
 
-        {/* Viewport */}
-        <div className="flex-1 overflow-auto bg-slate-50/30">
+        {/* Viewport - Main scrollable area */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden bg-slate-50/30 scroll-smooth">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
